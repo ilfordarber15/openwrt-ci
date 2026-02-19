@@ -10,9 +10,7 @@ sed -i 's/192.168.1.1/192.168.20.1/g' package/base-files/files/bin/config_genera
 cp -f $GITHUB_WORKSPACE/scripts/011-fix-mbo-modules-build.patch package/network/services/hostapd/patches/011-fix-mbo-modules-build.patch
 
 # 移除要替换的包
-rm -rf feeds/packages/net/smartdns
 rm -rf feeds/luci/themes/luci-theme-argon
-rm -rf feeds/luci/applications/luci-app-mosdns
 
 # Git稀疏克隆（每次操作后确保回到工作目录）
 function git_sparse_clone() {
@@ -26,16 +24,6 @@ function git_sparse_clone() {
 
 # OpenClash
 git_sparse_clone dev https://github.com/vernesong/OpenClash luci-app-openclash
-
-# AdGuardHome
-git clone --depth=1 https://github.com/kongfl888/luci-app-adguardhome package/luci-app-adguardhome
-
-# SmartDNS
-git clone --depth=1 -b lede https://github.com/pymumu/luci-app-smartdns package/luci-app-smartdns
-git clone --depth=1 https://github.com/pymumu/openwrt-smartdns package/smartdns
-
-# MosDNS
-git clone --depth=1 https://github.com/sbwml/luci-app-mosdns package/luci-app-mosdns
 
 # iStore
 git_sparse_clone main https://github.com/linkease/istore-ui app-store-ui
