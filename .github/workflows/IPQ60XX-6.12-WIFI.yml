@@ -1,178 +1,234 @@
-name: IPQ60XX-6.12-WIFI
+# Target - 仅 ZN M2
+CONFIG_TARGET_qualcommax=y
+CONFIG_TARGET_qualcommax_ipq60xx=y
+CONFIG_TARGET_DEVICE_qualcommax_ipq60xx_DEVICE_zn_m2=y
 
-on:
-  workflow_dispatch:
-  schedule:
-    - cron: 0 19 * * *
+# Memory Profile (512MB)
+# CONFIG_ATH11K_MEM_PROFILE_1G is not set
+CONFIG_ATH11K_MEM_PROFILE_512M=y
+# CONFIG_IPQ_MEM_PROFILE_1024 is not set
+CONFIG_IPQ_MEM_PROFILE_512=y
+CONFIG_KERNEL_IPQ_MEM_PROFILE=512
 
-env:
-  REPO_URL: https://github.com/LiBwrt/openwrt-6.x.git
-  REPO_BRANCH: main-nss
-  CONFIG_FILE: configs/ipq60xx-6.12-wifi.config
-  DIY_SCRIPT: libwrt.sh
-  CLASH_KERNEL: amd64
-  CACHE_TOOLCHAIN: true
-  UPLOAD_BIN_DIR: false
-  FIRMWARE_RELEASE: true
-  FIRMWARE_TAG: IPQ60XX-6.12-WIFI
-  TZ: Asia/Shanghai
+# NSS Offloading
+CONFIG_NSS_FIRMWARE_VERSION_12_2=y
+# CONFIG_NSS_FIRMWARE_VERSION_12_5 is not set
+CONFIG_NSS_DRV_IGS_ENABLE=y
+CONFIG_NSS_DRV_L2TP_ENABLE=y
+CONFIG_NSS_DRV_LAG_ENABLE=y
+CONFIG_NSS_DRV_MAPT_ENABLE=y
+CONFIG_NSS_DRV_PPTP_ENABLE=y
+CONFIG_NSS_DRV_PVXLAN_ENABLE=y
+CONFIG_NSS_DRV_SHAPER_ENABLE=y
+CONFIG_NSS_DRV_VXLAN_ENABLE=y
+CONFIG_PACKAGE_kmod-qca-mcs=y
+CONFIG_PACKAGE_kmod-qca-nss-drv-igs=y
+CONFIG_PACKAGE_kmod-qca-nss-drv-l2tpv2=y
+CONFIG_PACKAGE_kmod-qca-nss-drv-lag-mgr=y
+CONFIG_PACKAGE_kmod-qca-nss-drv-map-t=y
+CONFIG_PACKAGE_kmod-qca-nss-drv-pppoe=y
+CONFIG_PACKAGE_kmod-qca-nss-drv-pptp=y
+CONFIG_PACKAGE_kmod-qca-nss-drv-qdisc=y
+CONFIG_PACKAGE_kmod-qca-nss-macsec=y
 
-jobs:
-  Build:
-    runs-on: ubuntu-latest
+# Kernel
+CONFIG_KERNEL_ARM_PMU=y
+CONFIG_KERNEL_PERF_EVENTS=y
+CONFIG_KERNEL_ZRAM_BACKEND_LZO=y
+CONFIG_KERNEL_ZRAM_DEF_COMP_LZORLE=y
 
-    steps:
-    - name: Check Server Performance(检查服务器性能)
-      run: |
-        echo "警告⚠"
-        echo "分配的服务器性能有限，若选择的插件过多，务必注意CPU性能！"
-        echo -e "已知CPU型号（降序）：7763，8370C，8272CL，8171M，E5-2673 \n"
-        echo "--------------------------CPU信息--------------------------"
-        echo "CPU物理数量：$(cat /proc/cpuinfo | grep "physical id" | sort | uniq | wc -l)"
-        echo -e "CPU核心信息：$(cat /proc/cpuinfo | grep name | cut -f2 -d: | uniq -c) \n"
-        echo "--------------------------内存信息--------------------------"
-        echo "已安装内存详细信息："
-        echo -e "$(sudo lshw -short -C memory | grep GiB) \n"
-        echo "--------------------------硬盘信息--------------------------"
-        echo "硬盘数量：$(ls /dev/sd* | grep -v [1-9] | wc -l)" && df -hT
+# Busybox
+CONFIG_BUSYBOX_CUSTOM=y
+# CONFIG_BUSYBOX_CONFIG_FEATURE_IPV6 is not set
+CONFIG_BUSYBOX_CONFIG_LSUSB=y
 
-    - name: Initialization Environment(初始化环境)
-      env:
-        DEBIAN_FRONTEND: noninteractive
-      run: |
-        sudo bash -c 'bash <(curl -sL https://build-scripts.immortalwrt.org/init_build_environment.sh)'
-        sudo -E apt -yqq install dos2unix
-        sudo -E apt -yqq install libfuse-dev
-        sudo -E apt -yqq autoremove --purge
-        sudo -E apt -yqq autoclean
-        sudo -E apt -yqq clean
-        sudo -E systemctl daemon-reload
-        sudo timedatectl set-timezone "$TZ"
+# Coremark
+CONFIG_COREMARK_ENABLE_MULTITHREADING=y
+CONFIG_COREMARK_NUMBER_OF_THREADS=16
+CONFIG_COREMARK_OPTIMIZE_O3=y
 
-    - name: Combine Disks(合并磁盘)
-      uses: easimon/maximize-build-space@master
-      with:
-        swap-size-mb: 1024
-        temp-reserve-mb: 100
-        root-reserve-mb: 1024
+# LuCI
+CONFIG_LUCI_LANG_zh_Hans=y
+CONFIG_PACKAGE_luci=y
+CONFIG_PACKAGE_luci-base=y
+CONFIG_PACKAGE_luci-compat=y
+CONFIG_PACKAGE_luci-light=y
+CONFIG_PACKAGE_luci-lua-runtime=y
+CONFIG_PACKAGE_luci-mod-admin-full=y
+CONFIG_PACKAGE_luci-mod-network=y
+CONFIG_PACKAGE_luci-mod-status=y
+CONFIG_PACKAGE_luci-mod-system=y
+CONFIG_PACKAGE_luci-proto-ipv6=y
+CONFIG_PACKAGE_luci-proto-ppp=y
+CONFIG_PACKAGE_luci-lib-base=y
+CONFIG_PACKAGE_luci-lib-ip=y
+CONFIG_PACKAGE_luci-lib-jsonc=y
+CONFIG_PACKAGE_luci-lib-nixio=y
+CONFIG_PACKAGE_luci-i18n-base-zh-cn=y
 
-    - name: Checkout
-      uses: actions/checkout@main
+# LuCI Theme
+CONFIG_PACKAGE_luci-theme-argon=y
+CONFIG_PACKAGE_luci-app-argon-config=y
+CONFIG_PACKAGE_luci-i18n-argon-config-zh-cn=y
+CONFIG_PACKAGE_luci-theme-bootstrap=y
 
-    - name: Clone Source Code(克隆源代码)
-      run: |
-        df -hT $GITHUB_WORKSPACE
-        git clone --depth 1 -b $REPO_BRANCH $REPO_URL openwrt
-        cd openwrt
-        echo "OPENWRT_PATH=$PWD" >> $GITHUB_ENV
-        VERSION_INFO=$(git show -s --date=short --format="作者: %an<br/>时间: %cd<br/>内容: %s<br/>hash: %H")
-        echo "VERSION_INFO=$VERSION_INFO" >> $GITHUB_ENV
+# OpenClash
+CONFIG_PACKAGE_luci-app-openclash=y
 
-    - name: Generate Variables(生成变量)
-      run: |
-        cp $CONFIG_FILE $OPENWRT_PATH/.config
-        cd $OPENWRT_PATH
-        make defconfig > /dev/null 2>&1
-        SOURCE_REPO="$(echo $REPO_URL | awk -F '/' '{print $(NF)}')"
-        echo "SOURCE_REPO=$SOURCE_REPO" >> $GITHUB_ENV
-        DEVICE_TARGET=$(cat .config | grep CONFIG_TARGET_BOARD | awk -F '"' '{print $2}')
-        echo "DEVICE_TARGET=$DEVICE_TARGET" >> $GITHUB_ENV
-        DEVICE_SUBTARGET=$(cat .config | grep CONFIG_TARGET_SUBTARGET | awk -F '"' '{print $2}')
-        echo "DEVICE_SUBTARGET=$DEVICE_SUBTARGET" >> $GITHUB_ENV
+# AdGuardHome
+CONFIG_PACKAGE_luci-app-adguardhome=y
 
-    - name: Cache Toolchain(缓存工具链)
-      if: env.CACHE_TOOLCHAIN == 'true'
-      uses: HiGarfield/cachewrtbuild@main
-      with:
-        ccache: false
-        mixkey: ${{ env.SOURCE_REPO }}-${{ env.REPO_BRANCH }}-${{ env.DEVICE_TARGET }}-${{ env.DEVICE_SUBTARGET }}
-        prefix: ${{ env.OPENWRT_PATH }}
-    
-    - name: Install Feeds(安装feeds)
-      run: |
-        cd $OPENWRT_PATH
-        ./scripts/feeds update -a
-        git clone --depth 1 https://github.com/sbwml/openwrt_pkgs.git package/new/custom
-        mv package/new/custom/luci-app-netspeedtest  package/new
-        mv package/new/custom/speedtest-cli package/new
-        rm -rf package/new/custom
-        ./scripts/feeds install -a
-  
-    - name: Load Custom Configuration(加载自定义配置)
-      run: |
-        [ -e files ] && mv files $OPENWRT_PATH/files
-        [ -e $CONFIG_FILE ] && mv $CONFIG_FILE $OPENWRT_PATH/.config
-        chmod +x $DIY_SCRIPT
-        cd $OPENWRT_PATH
-        $GITHUB_WORKSPACE/$DIY_SCRIPT
+# SmartDNS
+CONFIG_PACKAGE_luci-app-smartdns=y
+CONFIG_PACKAGE_smartdns=y
 
-    - name: Download DL Package(下载DL软件包)
-      run: |
-        cd $OPENWRT_PATH
-        make defconfig
-        make download -j8
-        find dl -size -1024c -exec ls -l {} \;
-        find dl -size -1024c -exec rm -f {} \;
+# MosDNS
+CONFIG_PACKAGE_luci-app-mosdns=y
 
-    - name: Compile Firmware(开始编译固件)
-      id: compile
-      run: |
-        cd $OPENWRT_PATH
-        echo -e "$(nproc) thread compile"
-        make -j$(nproc) || make -j1 || make -j1 V=s
-        echo "status=success" >> $GITHUB_OUTPUT
-        echo "DATE=$(date +"%Y-%m-%d %H:%M:%S")" >> $GITHUB_ENV
-        echo "FILE_DATE=$(date +"%Y.%m.%d")" >> $GITHUB_ENV
+# iStore
+CONFIG_PACKAGE_luci-app-store=y
 
-    - name: Check Space Usage(检查空间使用情况)
-      if: (!cancelled())
-      run: df -hT
+# LuCI Apps
+CONFIG_PACKAGE_luci-app-firewall=y
+CONFIG_PACKAGE_luci-i18n-firewall-zh-cn=y
+CONFIG_PACKAGE_luci-app-ddns=y
+CONFIG_PACKAGE_luci-i18n-ddns-zh-cn=y
+CONFIG_PACKAGE_luci-app-upnp=y
+CONFIG_PACKAGE_luci-i18n-upnp-zh-cn=y
+CONFIG_PACKAGE_luci-app-sqm=y
+CONFIG_PACKAGE_luci-i18n-sqm-zh-cn=y
+CONFIG_PACKAGE_luci-app-ttyd=y
+CONFIG_PACKAGE_luci-i18n-ttyd-zh-cn=y
+CONFIG_PACKAGE_luci-app-wol=y
+CONFIG_PACKAGE_luci-i18n-wol-zh-cn=y
+CONFIG_PACKAGE_luci-app-zerotier=y
+CONFIG_PACKAGE_luci-i18n-zerotier-zh-cn=y
+CONFIG_PACKAGE_luci-app-package-manager=y
+CONFIG_PACKAGE_luci-i18n-package-manager-zh-cn=y
+CONFIG_PACKAGE_luci-app-netspeedtest=y
 
-    - name: Upload Bin Directory(上传固件)
-      if: steps.compile.outputs.status == 'success' && env.UPLOAD_BIN_DIR == 'true'
-      uses: actions/upload-artifact@main
-      with:
-        name: ${{ env.SOURCE_REPO }}-bin-${{ env.DEVICE_TARGET }}-${{ env.DEVICE_SUBTARGET }}-${{ env.FILE_DATE }}
-        path: ${{ env.OPENWRT_PATH }}/bin
+# Network
+CONFIG_PACKAGE_ddns-scripts=y
+CONFIG_PACKAGE_ddns-scripts-services=y
+CONFIG_PACKAGE_miniupnpd-nftables=y
+CONFIG_PACKAGE_sqm-scripts=y
+CONFIG_PACKAGE_zerotier=y
+CONFIG_PACKAGE_iptables-nft=y
+CONFIG_PACKAGE_iptables-mod-fullconenat=y
+CONFIG_PACKAGE_iptables-mod-ipopt=y
+CONFIG_PACKAGE_kmod-ipt-conntrack=y
+CONFIG_PACKAGE_kmod-ipt-core=y
+CONFIG_PACKAGE_kmod-ipt-fullconenat=y
+CONFIG_PACKAGE_kmod-ipt-ipopt=y
+CONFIG_PACKAGE_kmod-ipt-ipset=y
+CONFIG_PACKAGE_kmod-ipt-nat=y
+CONFIG_PACKAGE_kmod-nf-socket=y
+CONFIG_PACKAGE_kmod-nf-tproxy=y
+CONFIG_PACKAGE_kmod-nft-compat=y
+CONFIG_PACKAGE_kmod-nft-socket=y
+CONFIG_PACKAGE_kmod-nft-tproxy=y
+CONFIG_PACKAGE_xtables-nft=y
 
-    - name: Organize Files(整理文件)
-      if: steps.compile.outputs.status == 'success'
-      run: |
-        cd $OPENWRT_PATH/bin/targets/*/*
-        cat sha256sums
-        echo "VERSION_KERNEL=$(find -type f -name "*.manifest" -exec grep -oP '^kernel - \K.*?(?=~|-\d+-)' {} \;)" >> $GITHUB_ENV
-        cp $OPENWRT_PATH/.config build.config
-        mv -f $OPENWRT_PATH/bin/packages/*/*/*.apk packages
-        tar -zcf Packages.tar.gz packages
-        rm -rf packages feeds.buildinfo version.buildinfo
-        echo "FIRMWARE_PATH=$PWD" >> $GITHUB_ENV
+# Tunnel & VPN
+CONFIG_PACKAGE_kmod-wireguard=y
+CONFIG_PACKAGE_kmod-tun=y
+CONFIG_PACKAGE_kmod-gre6=y
+CONFIG_PACKAGE_kmod-ip6-tunnel=y
+CONFIG_PACKAGE_kmod-iptunnel4=y
+CONFIG_PACKAGE_kmod-iptunnel6=y
+CONFIG_PACKAGE_kmod-sit=y
+CONFIG_PACKAGE_kmod-bonding=y
+CONFIG_PACKAGE_kmod-vxlan=y
+CONFIG_PACKAGE_kmod-nat46=y
+CONFIG_PACKAGE_kmod-ifb=y
+CONFIG_PACKAGE_kmod-inet-diag=y
+CONFIG_PACKAGE_kmod-netlink-diag=y
+CONFIG_PACKAGE_6rd=y
 
-    - name: Upload Firmware To Artifact(将固件上传到Artifact)
-      if: steps.compile.outputs.status == 'success' && env.FIRMWARE_RELEASE != 'true'
-      uses: actions/upload-artifact@main
-      with:
-        name: ${{ env.SOURCE_REPO }}-firmware-${{ env.DEVICE_TARGET }}-${{ env.DEVICE_SUBTARGET }}-${{ env.FILE_DATE }}
-        path: ${{ env.FIRMWARE_PATH }}
+# Filesystem & USB
+CONFIG_PACKAGE_block-mount=y
+CONFIG_PACKAGE_kmod-fs-f2fs=y
+CONFIG_PACKAGE_kmod-fs-ntfs3=y
+CONFIG_PACKAGE_kmod-fs-vfat=y
+CONFIG_PACKAGE_kmod-fs-xfs=y
+CONFIG_PACKAGE_kmod-fs-exportfs=y
+CONFIG_PACKAGE_kmod-nls-cp437=y
+CONFIG_PACKAGE_kmod-nls-iso8859-1=y
+CONFIG_PACKAGE_kmod-nls-utf8=y
+CONFIG_PACKAGE_kmod-usb-storage=y
+CONFIG_PACKAGE_kmod-usb-storage-extras=y
+CONFIG_PACKAGE_kmod-usb2=y
+CONFIG_PACKAGE_kmod-usb-dwc2=y
+CONFIG_PACKAGE_kmod-usb-ehci=y
+CONFIG_PACKAGE_kmod-usb-phy-nop=y
+CONFIG_PACKAGE_kmod-usb-roles=y
+CONFIG_PACKAGE_kmod-scsi-core=y
 
-    - name: Upload Firmware To Release(发布固件)
-      if: steps.compile.outputs.status == 'success' && env.FIRMWARE_RELEASE == 'true'
-      uses: ncipollo/release-action@v1
-      with:
-        name: R${{ env.DATE }} for ${{ env.FIRMWARE_TAG }}
-        allowUpdates: true
-        tag: ${{ env.FIRMWARE_TAG }}
-        token: ${{ secrets.GITHUB_TOKEN }}
-        artifacts: ${{ env.FIRMWARE_PATH }}/*
-        body: |
-          **This is OpenWrt Firmware for ${{ env.FIRMWARE_TAG }}**
-          ### 📒 固件信息(WIFI)
-          - 带WIFI带有线NSS的6.12内核固件
-          - 💻 这是 ${{ env.FIRMWARE_TAG }} 平台使用的 OpenWrt 固件
-          - ⚽ 固件源码: ${{ env.REPO_URL }}
-          - 💝 源码分支: ${{ env.REPO_BRANCH }}
-          - 🌐 默认地址: 192.168.1.1
-          - 🔑 默认密码: password
-          ### 🧊 固件版本
-          - 固件内核版本：${{ env.VERSION_KERNEL }}
-          - 固件编译前最后一次➦[主源码](${{ env.REPO_URL }})更新记录
-          - ${{ env.VERSION_INFO }}
+# Crypto
+CONFIG_PACKAGE_kmod-crypto-acompress=y
+CONFIG_PACKAGE_kmod-crypto-crc32=y
+CONFIG_PACKAGE_kmod-crypto-lib-chacha20=y
+CONFIG_PACKAGE_kmod-crypto-lib-chacha20poly1305=y
+CONFIG_PACKAGE_kmod-crypto-lib-curve25519=y
+CONFIG_PACKAGE_kmod-crypto-lib-poly1305=y
+
+# System Tools
+CONFIG_PACKAGE_coremark=y
+CONFIG_PACKAGE_default-settings=y
+CONFIG_PACKAGE_default-settings-chn=y
+CONFIG_PACKAGE_etherwake=y
+CONFIG_PACKAGE_ip-tiny=y
+CONFIG_PACKAGE_iperf3=y
+CONFIG_PACKAGE_libiperf3=y
+CONFIG_PACKAGE_ttyd=y
+CONFIG_PACKAGE_tc-tiny=y
+CONFIG_PACKAGE_kmod-sched-cake=y
+CONFIG_PACKAGE_kmod-sched-core=y
+CONFIG_PACKAGE_kmod-zram=y
+CONFIG_PACKAGE_zram-swap=y
+CONFIG_PACKAGE_cgi-io=y
+
+# Libs
+CONFIG_PACKAGE_libatomic=y
+CONFIG_PACKAGE_libcap=y
+CONFIG_PACKAGE_libcap-ng=y
+CONFIG_PACKAGE_libip4tc=y
+CONFIG_PACKAGE_libip6tc=y
+CONFIG_PACKAGE_libiptext=y
+CONFIG_PACKAGE_libiptext-nft=y
+CONFIG_PACKAGE_libiptext6=y
+CONFIG_PACKAGE_liblua=y
+CONFIG_PACKAGE_liblucihttp=y
+CONFIG_PACKAGE_liblucihttp-lua=y
+CONFIG_PACKAGE_liblucihttp-ucode=y
+CONFIG_PACKAGE_libminiupnpc=y
+CONFIG_PACKAGE_libnatpmp=y
+CONFIG_PACKAGE_libstdcpp=y
+CONFIG_PACKAGE_libubus-lua=y
+CONFIG_PACKAGE_libuv=y
+CONFIG_PACKAGE_libwebsockets-full=y
+CONFIG_PACKAGE_libxtables=y
+CONFIG_PACKAGE_lua=y
+CONFIG_PACKAGE_rpcd=y
+CONFIG_PACKAGE_rpcd-mod-file=y
+CONFIG_PACKAGE_rpcd-mod-iwinfo=y
+CONFIG_PACKAGE_rpcd-mod-luci=y
+CONFIG_PACKAGE_rpcd-mod-rrdns=y
+CONFIG_PACKAGE_rpcd-mod-ucode=y
+CONFIG_PACKAGE_uhttpd=y
+CONFIG_PACKAGE_uhttpd-mod-ubus=y
+CONFIG_PACKAGE_ucode-mod-html=y
+CONFIG_PACKAGE_ucode-mod-lua=y
+CONFIG_PACKAGE_ucode-mod-math=y
+
+# GnuTLS
+CONFIG_GNUTLS_ALPN=y
+CONFIG_GNUTLS_ANON=y
+CONFIG_GNUTLS_DTLS_SRTP=y
+CONFIG_GNUTLS_HEARTBEAT=y
+CONFIG_GNUTLS_OCSP=y
+CONFIG_GNUTLS_PSK=y
+
+# Disable
+# CONFIG_TARGET_ROOTFS_INITRAMFS is not set
+# CONFIG_PACKAGE_kmod-crypto-kpp is not set
